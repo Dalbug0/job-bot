@@ -71,6 +71,7 @@ class ApiFacade:
     def __init__(self):
         self.base_url = settings.API_URL
         self.request_factory = RequestFactory()
+        self.hh_router_URL = "/api/v1/auth"
 
     async def get_resumes(self) -> Dict[str, Any]:
         """Получить список резюме"""
@@ -127,3 +128,25 @@ class ApiFacade:
             return response.json()
         else:
             raise Exception(f"Failed to update vacancy: {response.status_code}, {response.text}")
+
+    async def select_resume(self, resume_id: str) -> Dict[str, Any]:
+        """Выбрать активное резюме"""
+        url = f"{self.base_url}/hh/resumes/select/{resume_id}"
+        request = self.request_factory.create_post_request(url, {})
+        response = await request.execute()
+
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise Exception(f"Failed to select resume: {response.status_code}, {response.text}")
+
+    async def publish_resume(self, resume_id: str) -> Dict[str, Any]:
+        """Опубликовать/поднять резюме"""
+        url = f"{self.base_url}/hh/resumes/{resume_id}/publish"
+        request = self.request_factory.create_post_request(url, {})
+        response = await request.execute()
+
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise Exception(f"Failed to publish resume: {response.status_code}, {response.text}")

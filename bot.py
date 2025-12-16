@@ -74,6 +74,38 @@ async def update_vacancy_handler(message: types.Message):
     except Exception as e:
         await message.answer(f"Ошибка при обновлении вакансии: {str(e)}")
 
+
+# 📄 Выбор активного резюме
+@dp.message(Command("select_resume"))
+async def select_resume_handler(message: types.Message):
+    try:
+        resume_id = message.text.split(maxsplit=1)[1]
+    except IndexError:
+        await message.answer("Используй формат: /select_resume <ID_резюме>")
+        return
+
+    try:
+        result = await api_facade.select_resume(resume_id)
+        await message.answer(f"Активное резюме установлено: {resume_id}")
+    except Exception as e:
+        await message.answer(f"Не удалось выбрать резюме: {str(e)}")
+
+
+# 📢 Публикация/поднятие резюме
+@dp.message(Command("publish_resume"))
+async def publish_resume_handler(message: types.Message):
+    try:
+        resume_id = message.text.split(maxsplit=1)[1]
+    except IndexError:
+        await message.answer("Используй формат: /publish_resume <ID_резюме>")
+        return
+
+    try:
+        result = await api_facade.publish_resume(resume_id)
+        await message.answer("Резюме успешно поднято!")
+    except Exception as e:
+        await message.answer(f"Не удалось опубликовать резюме: {str(e)}")
+
 async def main():
     await dp.start_polling(bot)
 
