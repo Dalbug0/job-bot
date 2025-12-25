@@ -18,4 +18,5 @@ class Settings(BaseSettings):
         env_nested_delimiter="_",
     )
 
+
 settings = Settings()

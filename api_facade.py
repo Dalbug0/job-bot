@@ -1,6 +1,8 @@
-import httpx
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
+import httpx
+
 from config import settings
 
 
@@ -28,40 +30,64 @@ class GetRequest(BaseRequest):
 class PostRequest(BaseRequest):
     """Класс для POST запросов"""
 
-    def __init__(self, url: str, data: Dict[str, Any], headers: Optional[Dict[str, str]] = None):
+    def __init__(
+        self,
+        url: str,
+        data: Dict[str, Any],
+        headers: Optional[Dict[str, str]] = None,
+    ):
         super().__init__(url, headers)
         self.data = data
 
     async def execute(self) -> httpx.Response:
         async with httpx.AsyncClient() as client:
-            return await client.post(self.url, json=self.data, headers=self.headers)
+            return await client.post(
+                self.url, json=self.data, headers=self.headers
+            )
 
 
 class PutRequest(BaseRequest):
     """Класс для PUT запросов"""
 
-    def __init__(self, url: str, data: Dict[str, Any], headers: Optional[Dict[str, str]] = None):
+    def __init__(
+        self,
+        url: str,
+        data: Dict[str, Any],
+        headers: Optional[Dict[str, str]] = None,
+    ):
         super().__init__(url, headers)
         self.data = data
 
     async def execute(self) -> httpx.Response:
         async with httpx.AsyncClient() as client:
-            return await client.put(self.url, json=self.data, headers=self.headers)
+            return await client.put(
+                self.url, json=self.data, headers=self.headers
+            )
 
 
 class RequestFactory:
     """Фабрика для создания объектов запросов"""
 
     @staticmethod
-    def create_get_request(url: str, headers: Optional[Dict[str, str]] = None) -> GetRequest:
+    def create_get_request(
+        url: str, headers: Optional[Dict[str, str]] = None
+    ) -> GetRequest:
         return GetRequest(url, headers)
 
     @staticmethod
-    def create_post_request(url: str, data: Dict[str, Any], headers: Optional[Dict[str, str]] = None) -> PostRequest:
+    def create_post_request(
+        url: str,
+        data: Dict[str, Any],
+        headers: Optional[Dict[str, str]] = None,
+    ) -> PostRequest:
         return PostRequest(url, data, headers)
 
     @staticmethod
-    def create_put_request(url: str, data: Dict[str, Any], headers: Optional[Dict[str, str]] = None) -> PutRequest:
+    def create_put_request(
+        url: str,
+        data: Dict[str, Any],
+        headers: Optional[Dict[str, str]] = None,
+    ) -> PutRequest:
         return PutRequest(url, data, headers)
 
 
@@ -82,7 +108,9 @@ class ApiFacade:
         if response.status_code == 200:
             return response.json()
         else:
-            raise Exception(f"Failed to get resumes: {response.status_code}, {response.text}")
+            raise Exception(
+                f"Failed to get resumes: {response.status_code}, {response.text}"
+            )
 
     async def get_vacancies(self) -> list:
         """Получить список вакансий"""
@@ -93,9 +121,13 @@ class ApiFacade:
         if response.status_code == 200:
             return response.json()
         else:
-            raise Exception(f"Failed to get vacancies: {response.status_code}, {response.text}")
+            raise Exception(
+                f"Failed to get vacancies: {response.status_code}, {response.text}"
+            )
 
-    async def add_vacancy(self, title: str, company: str, location: str, description: str) -> Dict[str, Any]:
+    async def add_vacancy(
+        self, title: str, company: str, location: str, description: str
+    ) -> Dict[str, Any]:
         """Добавить новую вакансию"""
         url = f"{self.base_url}/vacancies/"
         data = {
@@ -110,9 +142,18 @@ class ApiFacade:
         if response.status_code == 200:
             return response.json()
         else:
-            raise Exception(f"Failed to add vacancy: {response.status_code}, {response.text}")
+            raise Exception(
+                f"Failed to add vacancy: {response.status_code}, {response.text}"
+            )
 
-    async def update_vacancy(self, vacancy_id: str, title: str, company: str, location: str, description: str) -> Dict[str, Any]:
+    async def update_vacancy(
+        self,
+        vacancy_id: str,
+        title: str,
+        company: str,
+        location: str,
+        description: str,
+    ) -> Dict[str, Any]:
         """Обновить вакансию"""
         url = f"{self.base_url}/vacancies/{vacancy_id}/"
         data = {
@@ -127,7 +168,9 @@ class ApiFacade:
         if response.status_code == 200:
             return response.json()
         else:
-            raise Exception(f"Failed to update vacancy: {response.status_code}, {response.text}")
+            raise Exception(
+                f"Failed to update vacancy: {response.status_code}, {response.text}"
+            )
 
     async def select_resume(self, resume_id: str) -> Dict[str, Any]:
         """Выбрать активное резюме"""
@@ -138,7 +181,9 @@ class ApiFacade:
         if response.status_code == 200:
             return response.json()
         else:
-            raise Exception(f"Failed to select resume: {response.status_code}, {response.text}")
+            raise Exception(
+                f"Failed to select resume: {response.status_code}, {response.text}"
+            )
 
     async def publish_resume(self, resume_id: str) -> Dict[str, Any]:
         """Опубликовать/поднять резюме"""
@@ -149,4 +194,6 @@ class ApiFacade:
         if response.status_code == 200:
             return response.json()
         else:
-            raise Exception(f"Failed to publish resume: {response.status_code}, {response.text}")
+            raise Exception(
+                f"Failed to publish resume: {response.status_code}, {response.text}"
+            )
