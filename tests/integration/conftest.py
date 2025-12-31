@@ -58,10 +58,14 @@ def docker_compose():
 
 
 @pytest.fixture(scope="session")
-def api_base_url(docker_compose):
-    """Фикстура для получения базового URL API после ожидания готовности"""
+def api_base_url():
+    """Фикстура для получения базового URL API после ожидания готовности
 
-    base_url = os.getenv("API_BASE_URL", "http://localhost:8000")
+    Работает как с локальным запуском docker-compose, так и с централизованным
+    тестовым окружением через run_integration_tests.py
+    """
+
+    base_url = os.getenv("API_BASE_URL", "http://localhost:8001")  # 8001 - тестовый порт
     max_attempts = 30  # 30 попыток по 5 секунд = 2.5 минуты
     attempt = 0
 
@@ -79,21 +83,44 @@ def api_base_url(docker_compose):
         print(f"Waiting for API... attempt {attempt}/{max_attempts}")
         time.sleep(5)
 
-    # Если API не поднялся, проверяем логи контейнера
-    try:
-        project_root = Path(__file__).parent.parent.parent.parent
-        result = subprocess.run(
-            ["docker-compose", "-f", str(project_root / "docker-compose.yml"), "logs", "api"],
-            capture_output=True,
-            text=True,
-            cwd=project_root
-        )
-        logs = result.stdout + result.stderr
-        print(f"API container logs:\n{logs}")
-    except Exception as e:
-        print(f"Failed to get container logs: {e}")
+    # Если API не поднялся, пытаемся получить логи из разных возможных источников
+    _show_container_logs(base_url)
 
     pytest.fail(
         f"API at {base_url} is not ready after {max_attempts} attempts. "
         "Check docker-compose logs and container status."
     )
+
+
+def _show_container_logs(base_url):
+    """Показать логи контейнеров для отладки"""
+    # Пытаемся получить логи из разных возможных docker-compose файлов
+    possible_compose_files = [
+        "docker-compose.test.yml",  # Централизованное тестовое окружение
+        "docker-compose.yml",       # Основное окружение
+    ]
+
+    for compose_file in possible_compose_files:
+        compose_path = Path(__file__).parent.parent.parent.parent / compose_file
+        if compose_path.exists():
+            try:
+                # Пытаемся получить логи API контейнера
+                for container_name in ["job_platform_test_api", "job_api"]:
+                    result = subprocess.run(
+                        ["docker-compose", "-f", str(compose_path), "logs", container_name],
+                        capture_output=True,
+                        text=True,
+                        cwd=compose_path.parent,
+                        timeout=30
+                    )
+                    if result.returncode == 0 and (result.stdout or result.stderr):
+                        logs = result.stdout + result.stderr
+                        print(f"\n=== Container logs ({container_name}) ===")
+                        # Показываем последние 50 строк логов
+                        lines = logs.split('\n')[-50:]
+                        print('\n'.join(lines))
+                        return
+            except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
+                continue
+
+    print(f"Could not retrieve container logs for API at {base_url}")
