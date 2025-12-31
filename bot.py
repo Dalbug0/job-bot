@@ -14,8 +14,47 @@ api_facade = ApiFacade()
 @dp.message(Command("start"))
 async def start_handler(message: types.Message):
     await message.answer(
-        "Привет! Я JobBot. Я помогу тебе работать с вакансиями и резюме."
+        "Привет! Я JobBot. Я помогу тебе работать с вакансиями и резюме.\n\n"
+        "Доступные команды:\n"
+        "/login - получить ссылку на авторизацию\n"
+        "/me - информация о профиле\n"
+        "/resumes - список резюме\n"
+        "/select_resume <id> - выбрать активное резюме\n"
+        "/publish_resume <id> - опубликовать/поднять резюме\n"
+        "/vacancies - список вакансий\n"
+        "/refresh - обновить токен доступа"
     )
+
+
+@dp.message(Command("login"))
+async def login_handler(message: types.Message):
+    try:
+        login_url = await api_facade.get_login_url()
+        await message.answer(
+            f"Перейдите по ссылке для авторизации:\n{login_url}\n\n"
+            "После авторизации используйте /me для проверки статуса."
+        )
+    except Exception as e:
+        await message.answer(f"Не удалось получить ссылку на авторизацию: {str(e)}")
+
+
+@dp.message(Command("me"))
+async def me_handler(message: types.Message):
+    try:
+        user_info = await api_facade.get_me()
+        text = f"👤 Ваш профиль:\nID: {user_info.get('id', 'N/A')}\nEmail: {user_info.get('email', 'N/A')}"
+        await message.answer(text)
+    except Exception as e:
+        await message.answer(f"Ошибка: {str(e)}")
+
+
+@dp.message(Command("refresh"))
+async def refresh_handler(message: types.Message):
+    try:
+        result = await api_facade.refresh_access_token()
+        await message.answer("✅ Токен доступа успешно обновлен!")
+    except Exception as e:
+        await message.answer(f"Не удалось обновить токен: {str(e)}")
 
 
 @dp.message(Command("resumes"))
@@ -27,7 +66,7 @@ async def resumes_handler(message: types.Message):
         )
         await message.answer(f"Твои резюме:\n{text}")
     except Exception as e:
-        await message.answer(f"Не удалось получить резюме: {str(e)}")
+        await message.answer(f"Ошибка: {str(e)}")
 
 
 # 📋 Получение списка вакансий
@@ -110,7 +149,7 @@ async def select_resume_handler(message: types.Message):
         result = await api_facade.select_resume(resume_id)
         await message.answer(f"Активное резюме установлено: {resume_id}")
     except Exception as e:
-        await message.answer(f"Не удалось выбрать резюме: {str(e)}")
+        await message.answer(f"Ошибка: {str(e)}")
 
 
 # 📢 Публикация/поднятие резюме
@@ -126,7 +165,7 @@ async def publish_resume_handler(message: types.Message):
         result = await api_facade.publish_resume(resume_id)
         await message.answer("Резюме успешно поднято!")
     except Exception as e:
-        await message.answer(f"Не удалось опубликовать резюме: {str(e)}")
+        await message.answer(f"Ошибка: {str(e)}")
 
 
 async def main():
