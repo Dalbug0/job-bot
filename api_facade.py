@@ -1,3 +1,4 @@
+import secrets
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, Union
 
@@ -129,7 +130,7 @@ class ApiFacade:
     def __init__(self):
         self.base_url = settings.API_URL
         self.request_factory = RequestFactory()
-        self.auth_router_url = "/api/v1/auth"
+        self.auth_router_url = "/auth"
         self._access_token: Optional[str] = None
 
     def set_access_token(self, token: str) -> None:
@@ -313,4 +314,79 @@ class ApiFacade:
         else:
             raise Exception(
                 f"Failed to publish resume: {response.status_code}, {response.text}"
+            )
+
+    async def register_user(self, username: str, email: str, telegram_id: int) -> int:
+        """Зарегистрировать нового пользователя"""
+        password = secrets.token_urlsafe(16)  # Генерируем случайный пароль
+
+        url = f"{self.base_url}/auth/register"
+        data = {
+            "username": username,
+            "email": email,
+            "password": password
+        }
+        request = self.request_factory.create_post_request(url, data)
+        response = await request.execute()
+
+        if response.status_code == 200:
+            result = response.json()
+            return result.get("user_id")
+        else:
+            raise Exception(
+                f"Failed to register user: {response.status_code}, {response.text}"
+            )
+
+    async def get_hh_login_url(self, user_id: int) -> str:
+        """Получить URL для авторизации HH.ru"""
+        url = f"{self.base_url}/api/v1/auth/hh/login_url?user_id={user_id}"
+        request = self.request_factory.create_get_request(url)
+        response = await request.execute()
+
+        if response.status_code == 200:
+            # API возвращает URL авторизации HH.ru
+            return response.json().get("login_url", "")
+        else:
+            raise Exception(
+                f"Failed to get HH login URL: {response.status_code}, {response.text}"
+            )
+
+    async def get_hh_token_status(self, user_id: int) -> Dict[str, Any]:
+        """Получить статус HH токена пользователя"""
+        url = f"{self.base_url}/api/v1/auth/hh/token/{user_id}"
+        request = self.request_factory.create_get_request(url)
+        response = await request.execute()
+
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise Exception(
+                f"Failed to get HH token status: {response.status_code}, {response.text}"
+            )
+
+    async def search_vacancies(
+        self,
+        company: Optional[str] = None,
+        location: Optional[str] = None,
+        skip: int = 0,
+        limit: int = 10
+    ) -> list:
+        """Поиск вакансий по параметрам"""
+        url = f"{self.base_url}/vacancies/"
+        params = {}
+        if company:
+            params["company"] = company
+        if location:
+            params["location"] = location
+        params["skip"] = skip
+        params["limit"] = limit
+
+        request = self.request_factory.create_get_request(url, params=params)
+        response = await request.execute()
+
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise Exception(
+                f"Failed to search vacancies: {response.status_code}, {response.text}"
             )
