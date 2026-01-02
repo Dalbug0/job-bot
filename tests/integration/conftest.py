@@ -72,7 +72,7 @@ def api_base_url():
     while attempt < max_attempts:
         try:
             # Проверяем готовность API через health check или простой GET запрос
-            response = requests.get(f"{base_url}/docs", timeout=5)
+            response = requests.get(f"{base_url}/api/v1/docs", timeout=5)
             if response.status_code == 200:
                 print(f"API is ready at {base_url}")
                 return base_url
