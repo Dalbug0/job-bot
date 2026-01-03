@@ -359,12 +359,15 @@ class ApiFacade:
 
     async def get_telegram_user_info(self, telegram_id: int) -> dict:
         """Получить информацию о Telegram пользователе из API"""
-        url = f"{self.base_url}/auth/telegram/user/{telegram_id}"
+        url = f"{self.base_url}/users/telegram/{telegram_id}"
         request = self.request_factory.create_get_request(url)
         response = await request.execute()
 
         if response.status_code == 200:
             return response.json()
+        elif response.status_code == 404:
+            # Пользователь не найден - это нормально, вернем None или пустой dict
+            return {}
         else:
             raise Exception(
                 f"Failed to get telegram user info: {response.status_code}, {response.text}"

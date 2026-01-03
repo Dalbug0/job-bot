@@ -191,20 +191,25 @@ class TestBotFeaturesIntegration:
 
     def test_telegram_user_endpoints(self, api_base_url):
         """Тест эндпоинтов для Telegram пользователей"""
-        # Создаем тестового Telegram пользователя
+        import time
+        # Создаем уникального тестового Telegram пользователя
+        telegram_id = int(time.time() * 1000000)  # Уникальный ID на основе timestamp
         telegram_data = {
-            "telegram_id": 123456789,
-            "telegram_username": "test_user",
+            "telegram_id": telegram_id,
+            "telegram_username": f"test_user_{telegram_id}",
             "first_name": "Test",
             "last_name": "User"
         }
 
         # Регистрируем через auth эндпоинт
+        print(f"Registering Telegram user: {telegram_data}")
         register_response = requests.post(
             f"{api_base_url}/auth/register/telegram",
             json=telegram_data,
             timeout=5
         )
+
+        print(f"Registration response: {register_response.status_code} - {register_response.text}")
 
         assert register_response.status_code == 200, (
             f"Expected 200 for Telegram registration, got {register_response.status_code}. "

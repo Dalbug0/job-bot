@@ -38,6 +38,10 @@ async def get_or_create_user(telegram_user: types.User) -> Dict:
         # Проверяем, зарегистрирован ли пользователь в базе данных по telegram_id
         user_info = await api_facade.get_telegram_user_info(user_id)
 
+        # Если user_info пустой, значит пользователь не найден
+        if not user_info:
+            raise Exception("User not found in database")
+
         # Пользователь найден в базе данных - обновляем локальное хранилище
         user_storage[user_id] = {
             "telegram_id": user_id,
@@ -45,7 +49,7 @@ async def get_or_create_user(telegram_user: types.User) -> Dict:
             "first_name": telegram_user.first_name or user_info.get("first_name"),
             "last_name": telegram_user.last_name or user_info.get("last_name"),
             "email": None,  # Telegram пользователи не имеют email
-            "internal_user_id": user_info["user_id"],
+            "internal_user_id": user_info["id"],  # В ответе поле называется "id"
             "is_registered": True,
             "registration_type": "telegram",
             "from_database": True  # Флаг, что данные получены из БД
@@ -76,7 +80,31 @@ async def get_or_create_user(telegram_user: types.User) -> Dict:
             return user_storage[user_id]
 
         except Exception as e:
-            # Если даже регистрация не удалась, создаем запись без регистрации
+            # Проверяем, не является ли ошибка конфликтом (пользователь уже существует)
+            error_text = str(e).lower()
+            if "already exists" in error_text or "conflict" in error_text:
+                # Пользователь уже существует, но get_telegram_user_info его не нашел
+                # Возможно, есть несогласованность в данных
+                # Попробуем еще раз получить информацию
+                try:
+                    user_info = await api_facade.get_telegram_user_info(user_id)
+                    if user_info:
+                        user_storage[user_id] = {
+                            "telegram_id": user_id,
+                            "username": telegram_user.username or user_info.get("telegram_username"),
+                            "first_name": telegram_user.first_name or user_info.get("first_name"),
+                            "last_name": telegram_user.last_name or user_info.get("last_name"),
+                            "email": None,
+                            "internal_user_id": user_info["id"],
+                            "is_registered": True,
+                            "registration_type": "telegram",
+                            "from_database": True
+                        }
+                        return user_storage[user_id]
+                except Exception:
+                    pass
+
+            # Если регистрация не удалась по другой причине, создаем запись без регистрации
             user_storage[user_id] = {
                 "telegram_id": user_id,
                 "username": telegram_user.username,
