@@ -357,6 +357,19 @@ class ApiFacade:
                 f"Failed to register telegram user: {response.status_code}, {response.text}"
             )
 
+    async def get_telegram_user_info(self, telegram_id: int) -> dict:
+        """Получить информацию о Telegram пользователе из API"""
+        url = f"{self.base_url}/auth/telegram/user/{telegram_id}"
+        request = self.request_factory.create_get_request(url)
+        response = await request.execute()
+
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise Exception(
+                f"Failed to get telegram user info: {response.status_code}, {response.text}"
+            )
+
     async def get_hh_login_url(self, user_id: int) -> str:
         """Получить URL для авторизации HH.ru"""
         url = f"{self.base_url}/api/v1/auth/hh/login_url?user_id={user_id}"

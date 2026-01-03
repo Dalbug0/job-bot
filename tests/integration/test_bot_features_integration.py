@@ -77,6 +77,113 @@ class TestBotFeaturesIntegration:
         # Проверяем наличие основных эндпоинтов
         paths = spec.get("paths", {})
         assert "/auth/register" in paths, "Register endpoint not in OpenAPI spec"
+        assert "/auth/register/telegram" in paths, "Telegram register endpoint not in OpenAPI spec"
+        assert "/users/telegram/" in paths, "Telegram users endpoints not in OpenAPI spec"
         assert "/vacancies/" in paths, "Vacancies endpoint not in OpenAPI spec"
 
         print("[OK] OpenAPI spec contains required endpoints")
+
+    def test_telegram_user_endpoints(self, api_base_url):
+        """Тест эндпоинтов для Telegram пользователей"""
+        # Создаем тестового Telegram пользователя
+        telegram_user_data = {
+            "telegram_id": 123456789,
+            "telegram_username": "test_user",
+            "first_name": "Test",
+            "last_name": "User"
+        }
+
+        # Регистрируем Telegram пользователя
+        register_response = requests.post(
+            f"{api_base_url}/auth/register/telegram",
+            json=telegram_user_data,
+            timeout=5
+        )
+
+        assert register_response.status_code == 200, (
+            f"Expected 200 for Telegram user registration, got {register_response.status_code}. "
+            f"Response: {register_response.text}"
+        )
+
+        register_result = register_response.json()
+        assert "user_id" in register_result, f"Expected user_id in response, got: {register_result}"
+
+        user_id = register_result["user_id"]
+        telegram_id = telegram_user_data["telegram_id"]
+
+        # Получаем информацию о Telegram пользователе
+        get_response = requests.get(
+            f"{api_base_url}/users/telegram/{telegram_id}",
+            timeout=5
+        )
+
+        assert get_response.status_code == 200, (
+            f"Expected 200 for getting Telegram user, got {get_response.status_code}. "
+            f"Response: {get_response.text}"
+        )
+
+        user_data = get_response.json()
+        assert user_data["id"] == user_id, f"Expected user_id {user_id}, got {user_data['id']}"
+        assert user_data["telegram_id"] == telegram_id, f"Expected telegram_id {telegram_id}, got {user_data['telegram_id']}"
+        assert user_data["telegram_username"] == telegram_user_data["telegram_username"]
+
+        # Проверяем, что обычный эндпоинт get_user тоже работает
+        general_get_response = requests.get(
+            f"{api_base_url}/users/{user_id}",
+            timeout=5
+        )
+
+        assert general_get_response.status_code == 200, (
+            f"Expected 200 for getting user by ID, got {general_get_response.status_code}. "
+            f"Response: {general_get_response.text}"
+        )
+
+        general_user_data = general_get_response.json()
+        assert general_user_data["id"] == user_id
+        assert "telegram_id" in general_user_data, "Expected telegram_id in general user response"
+
+        print("[OK] Telegram user endpoints work correctly")
+
+    def test_telegram_user_endpoints(self, api_base_url):
+        """Тест эндпоинтов для Telegram пользователей"""
+        # Создаем тестового Telegram пользователя
+        telegram_data = {
+            "telegram_id": 123456789,
+            "telegram_username": "test_user",
+            "first_name": "Test",
+            "last_name": "User"
+        }
+
+        # Регистрируем через auth эндпоинт
+        register_response = requests.post(
+            f"{api_base_url}/auth/register/telegram",
+            json=telegram_data,
+            timeout=5
+        )
+
+        assert register_response.status_code == 200, (
+            f"Expected 200 for Telegram registration, got {register_response.status_code}. "
+            f"Response: {register_response.text}"
+        )
+
+        user_data = register_response.json()
+        assert "user_id" in user_data, f"Expected user_id in response, got: {user_data}"
+
+        user_id = user_data["user_id"]
+        telegram_id = user_data["telegram_id"]
+
+        # Проверяем получение через users эндпоинт
+        get_response = requests.get(
+            f"{api_base_url}/users/telegram/{telegram_id}",
+            timeout=5
+        )
+
+        assert get_response.status_code == 200, (
+            f"Expected 200 for getting Telegram user, got {get_response.status_code}. "
+            f"Response: {get_response.text}"
+        )
+
+        retrieved_user = get_response.json()
+        assert retrieved_user["id"] == user_id, f"Expected user ID {user_id}, got {retrieved_user['id']}"
+
+        print("[OK] Telegram user endpoints work correctly")
