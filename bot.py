@@ -28,19 +28,41 @@ def generate_password() -> str:
     return secrets.token_urlsafe(16)
 
 
-def get_or_create_user(telegram_user: types.User) -> Dict:
+async def get_or_create_user(telegram_user: types.User) -> Dict:
     """Получить или создать пользователя в хранилище"""
     user_id = telegram_user.id
     if user_id not in user_storage:
-        user_storage[user_id] = {
-            "telegram_id": user_id,
-            "username": telegram_user.username,
-            "first_name": telegram_user.first_name,
-            "last_name": telegram_user.last_name,
-            "email": None,  # Будет запрашиваться при регистрации
-            "internal_user_id": None,  # ID в job_aggregator
-            "is_registered": False,
-        }
+        # Автоматически регистрируем пользователя через Telegram
+        try:
+            registration_result = await api_facade.register_telegram_user(
+                telegram_id=user_id,
+                telegram_username=telegram_user.username,
+                first_name=telegram_user.first_name,
+                last_name=telegram_user.last_name
+            )
+
+            user_storage[user_id] = {
+                "telegram_id": user_id,
+                "username": telegram_user.username,
+                "first_name": telegram_user.first_name,
+                "last_name": telegram_user.last_name,
+                "email": None,  # Telegram пользователи не имеют email
+                "internal_user_id": registration_result["user_id"],
+                "is_registered": True,
+                "registration_type": "telegram"
+            }
+        except Exception as e:
+            # Если регистрация не удалась, создаем запись без регистрации
+            user_storage[user_id] = {
+                "telegram_id": user_id,
+                "username": telegram_user.username,
+                "first_name": telegram_user.first_name,
+                "last_name": telegram_user.last_name,
+                "email": None,
+                "internal_user_id": None,
+                "is_registered": False,
+                "registration_type": None
+            }
     return user_storage[user_id]
 
 
@@ -59,7 +81,7 @@ def update_user_registration_status(telegram_id: int, internal_user_id: int) -> 
 
 @dp.message(Command("start"))
 async def start_handler(message: types.Message):
-    user = get_or_create_user(message.from_user)
+    user = await get_or_create_user(message.from_user)
 
     status = "Зарегистрирован" if user["is_registered"] else "Не зарегистрирован"
     hh_status = "Подключен" if user.get("internal_user_id") else "Не подключен"
@@ -84,14 +106,18 @@ async def start_handler(message: types.Message):
 
 @dp.message(Command("register"))
 async def register_handler(message: types.Message, state: FSMContext):
-    user = get_or_create_user(message.from_user)
+    user = await get_or_create_user(message.from_user)
 
-    if user["is_registered"]:
-        await message.answer("Вы уже зарегистрированы в системе!")
+    if user["is_registered"] and user.get("registration_type") == "telegram":
+        await message.answer("✅ Вы уже автоматически зарегистрированы через Telegram!")
+        return
+    elif user["is_registered"]:
+        await message.answer("Вы уже зарегистрированы в системе через email!")
         return
 
+    # Если автоматическая регистрация не сработала, предлагаем ручную через email
     await message.answer(
-        "Для регистрации мне нужен ваш email адрес.\n"
+        "Автоматическая регистрация не удалась. Для ручной регистрации нужен ваш email адрес.\n"
         "Пожалуйста, введите email:"
     )
     await state.set_state(RegistrationStates.waiting_for_email)
@@ -135,7 +161,7 @@ async def process_email(message: types.Message, state: FSMContext):
 
 @dp.message(Command("login"))
 async def login_handler(message: types.Message):
-    user = get_or_create_user(message.from_user)
+    user = await get_or_create_user(message.from_user)
 
     if not user["is_registered"]:
         await message.answer("❌ Сначала зарегистрируйтесь командой /register")
@@ -160,7 +186,7 @@ async def login_handler(message: types.Message):
 
 @dp.message(Command("check_hh_status"))
 async def check_hh_status_handler(message: types.Message):
-    user = get_or_create_user(message.from_user)
+    user = await get_or_create_user(message.from_user)
 
     if not user["is_registered"]:
         await message.answer("❌ Сначала зарегистрируйтесь командой /register")
@@ -188,16 +214,26 @@ async def check_hh_status_handler(message: types.Message):
 
 @dp.message(Command("me"))
 async def me_handler(message: types.Message):
-    user = get_or_create_user(message.from_user)
+    user = await get_or_create_user(message.from_user)
 
     text = "👤 Ваш профиль:\n"
     text += f"Telegram ID: {user['telegram_id']}\n"
     text += f"Username: @{user['username'] or 'N/A'}\n"
-    text += f"Статус регистрации: {'✅ Зарегистрирован' if user['is_registered'] else '❌ Не зарегистрирован'}\n"
+    text += f"Имя: {user['first_name'] or 'N/A'}\n"
+    text += f"Фамилия: {user['last_name'] or 'N/A'}\n"
+
+    registration_type = user.get("registration_type")
+    if registration_type == "telegram":
+        text += "Тип регистрации: 🔵 Telegram (автоматическая)\n"
+    elif registration_type == "email":
+        text += "Тип регистрации: 📧 Email\n"
+    else:
+        text += "Тип регистрации: ❌ Не зарегистрирован\n"
 
     if user["is_registered"]:
         text += f"Внутренний ID: {user['internal_user_id']}\n"
-        text += f"Email: {user['email']}\n"
+        if user['email']:
+            text += f"Email: {user['email']}\n"
 
         try:
             hh_status = await api_facade.get_hh_token_status(user["internal_user_id"])

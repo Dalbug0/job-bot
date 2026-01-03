@@ -210,7 +210,7 @@ class ApiFacade:
 
     async def get_resumes(self) -> Dict[str, Any]:
         """Получить список резюме"""
-        url = f"{self.base_url}/hh/resumes"
+        url = f"{self.base_url}/api/v1/auth/hh/resumes"
         headers = self._get_auth_headers()
         request = self.request_factory.create_get_request(url, headers=headers)
         response = await request.execute()
@@ -286,7 +286,7 @@ class ApiFacade:
 
     async def select_resume(self, resume_id: str) -> Dict[str, Any]:
         """Выбрать активное резюме"""
-        url = f"{self.base_url}/hh/resumes/select/{resume_id}"
+        url = f"{self.base_url}/api/v1/auth/hh/resumes/select/{resume_id}"
         headers = self._get_auth_headers()
         request = self.request_factory.create_post_request(url, {}, headers=headers)
         response = await request.execute()
@@ -302,7 +302,7 @@ class ApiFacade:
 
     async def publish_resume(self, resume_id: str) -> Dict[str, Any]:
         """Опубликовать/поднять резюме"""
-        url = f"{self.base_url}/hh/resumes/{resume_id}/publish"
+        url = f"{self.base_url}/api/v1/auth/hh/resumes/{resume_id}/publish"
         headers = self._get_auth_headers()
         request = self.request_factory.create_post_request(url, {}, headers=headers)
         response = await request.execute()
@@ -317,7 +317,7 @@ class ApiFacade:
             )
 
     async def register_user(self, username: str, email: str, telegram_id: int) -> int:
-        """Зарегистрировать нового пользователя"""
+        """Зарегистрировать нового пользователя через email"""
         password = secrets.token_urlsafe(16)  # Генерируем случайный пароль
 
         url = f"{self.base_url}/auth/register"
@@ -335,6 +335,26 @@ class ApiFacade:
         else:
             raise Exception(
                 f"Failed to register user: {response.status_code}, {response.text}"
+            )
+
+    async def register_telegram_user(self, telegram_id: int, telegram_username: str = None,
+                                   first_name: str = None, last_name: str = None) -> dict:
+        """Зарегистрировать нового пользователя через Telegram"""
+        url = f"{self.base_url}/auth/register/telegram"
+        data = {
+            "telegram_id": telegram_id,
+            "telegram_username": telegram_username,
+            "first_name": first_name,
+            "last_name": last_name
+        }
+        request = self.request_factory.create_post_request(url, data)
+        response = await request.execute()
+
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise Exception(
+                f"Failed to register telegram user: {response.status_code}, {response.text}"
             )
 
     async def get_hh_login_url(self, user_id: int) -> str:
