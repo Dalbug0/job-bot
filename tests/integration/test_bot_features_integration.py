@@ -79,6 +79,8 @@ class TestBotFeaturesIntegration:
         assert "/auth/register" in paths, "Register endpoint not in OpenAPI spec"
         assert "/auth/register/telegram" in paths, "Telegram register endpoint not in OpenAPI spec"
         assert "/users/telegram/" in paths, "Telegram users endpoints not in OpenAPI spec"
+        assert "/users/telegram/{telegram_id}" in paths, "Telegram user by telegram_id endpoint not in OpenAPI spec"
+        assert "/users/telegram/user/{user_id}" in paths, "Telegram user by user_id endpoint not in OpenAPI spec"
         assert "/vacancies/" in paths, "Vacancies endpoint not in OpenAPI spec"
 
         print("[OK] OpenAPI spec contains required endpoints")
@@ -141,6 +143,49 @@ class TestBotFeaturesIntegration:
         general_user_data = general_get_response.json()
         assert general_user_data["id"] == user_id
         assert "telegram_id" in general_user_data, "Expected telegram_id in general user response"
+
+        # Проверяем новый эндпоинт get_telegram_user_by_user_id
+        telegram_by_user_id_response = requests.get(
+            f"{api_base_url}/users/telegram/user/{user_id}",
+            timeout=5
+        )
+
+        assert telegram_by_user_id_response.status_code == 200, (
+            f"Expected 200 for getting Telegram user by user_id, got {telegram_by_user_id_response.status_code}. "
+            f"Response: {telegram_by_user_id_response.text}"
+        )
+
+        telegram_by_user_data = telegram_by_user_id_response.json()
+        assert telegram_by_user_data["id"] == user_id
+        assert telegram_by_user_data["telegram_id"] == telegram_id
+        assert telegram_by_user_data["telegram_username"] == telegram_user_data["telegram_username"]
+
+        # Проверяем, что обычный пользователь не может быть получен через этот эндпоинт
+        # Создаем обычного пользователя
+        regular_user_data = {
+            "username": "regular_user",
+            "email": "regular@example.com",
+            "password": "password123"
+        }
+
+        regular_register_response = requests.post(
+            f"{api_base_url}/auth/register",
+            json=regular_user_data,
+            timeout=5
+        )
+
+        assert regular_register_response.status_code == 200
+        regular_user_id = regular_register_response.json()["user_id"]
+
+        # Попытка получить обычного пользователя через Telegram эндпоинт должна вернуть 404
+        regular_telegram_response = requests.get(
+            f"{api_base_url}/users/telegram/user/{regular_user_id}",
+            timeout=5
+        )
+
+        assert regular_telegram_response.status_code == 404, (
+            f"Expected 404 for regular user in Telegram endpoint, got {regular_telegram_response.status_code}"
+        )
 
         print("[OK] Telegram user endpoints work correctly")
 
