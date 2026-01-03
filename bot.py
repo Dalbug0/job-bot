@@ -19,7 +19,8 @@ bot = Bot(token=settings.BOT_TOKEN)
 dp = Dispatcher()
 api_facade = ApiFacade()
 
-# Простое хранилище пользователей в памяти (для продакшена использовать БД)
+# Кэш пользователей в памяти (данные проверяются через API базы данных)
+# Используется для оптимизации, основное хранение - в базе данных API
 user_storage: Dict[int, Dict] = {}
 
 
@@ -29,10 +30,30 @@ def generate_password() -> str:
 
 
 async def get_or_create_user(telegram_user: types.User) -> Dict:
-    """Получить или создать пользователя в хранилище"""
+    """Получить или создать пользователя с проверкой через базу данных"""
     user_id = telegram_user.id
-    if user_id not in user_storage:
-        # Автоматически регистрируем пользователя через Telegram
+
+    # Всегда проверяем через базу данных (API), а не полагаемся на локальное хранилище
+    try:
+        # Проверяем, зарегистрирован ли пользователь в базе данных по telegram_id
+        user_info = await api_facade.get_telegram_user_info(user_id)
+
+        # Пользователь найден в базе данных - обновляем локальное хранилище
+        user_storage[user_id] = {
+            "telegram_id": user_id,
+            "username": telegram_user.username or user_info.get("telegram_username"),
+            "first_name": telegram_user.first_name or user_info.get("first_name"),
+            "last_name": telegram_user.last_name or user_info.get("last_name"),
+            "email": None,  # Telegram пользователи не имеют email
+            "internal_user_id": user_info["user_id"],
+            "is_registered": True,
+            "registration_type": "telegram",
+            "from_database": True  # Флаг, что данные получены из БД
+        }
+        return user_storage[user_id]
+
+    except Exception:
+        # Пользователь не найден в базе данных - регистрируем нового
         try:
             registration_result = await api_facade.register_telegram_user(
                 telegram_id=user_id,
@@ -49,10 +70,13 @@ async def get_or_create_user(telegram_user: types.User) -> Dict:
                 "email": None,  # Telegram пользователи не имеют email
                 "internal_user_id": registration_result["user_id"],
                 "is_registered": True,
-                "registration_type": "telegram"
+                "registration_type": "telegram",
+                "from_database": False  # Данные только что зарегистрированы
             }
+            return user_storage[user_id]
+
         except Exception as e:
-            # Если регистрация не удалась, создаем запись без регистрации
+            # Если даже регистрация не удалась, создаем запись без регистрации
             user_storage[user_id] = {
                 "telegram_id": user_id,
                 "username": telegram_user.username,
@@ -61,9 +85,10 @@ async def get_or_create_user(telegram_user: types.User) -> Dict:
                 "email": None,
                 "internal_user_id": None,
                 "is_registered": False,
-                "registration_type": None
+                "registration_type": None,
+                "from_database": False
             }
-    return user_storage[user_id]
+            return user_storage[user_id]
 
 
 def update_user_email(telegram_id: int, email: str) -> None:
