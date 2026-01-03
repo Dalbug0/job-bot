@@ -245,6 +245,9 @@ async def check_hh_status_handler(message: types.Message):
         await message.answer("❌ Сначала зарегистрируйтесь командой /register")
         return
 
+    # Устанавливаем internal_user_id для авторизации в API
+    api_facade.set_internal_user_id(user["internal_user_id"])
+
     try:
         status = await api_facade.get_hh_token_status(user["internal_user_id"])
         if status.get("status") == "found":
@@ -312,6 +315,15 @@ async def refresh_handler(message: types.Message):
 
 @dp.message(Command("resumes"))
 async def resumes_handler(message: types.Message):
+    user = await get_or_create_user(message.from_user)
+
+    if not user["is_registered"]:
+        await message.answer("❌ Сначала зарегистрируйтесь командой /register")
+        return
+
+    # Устанавливаем internal_user_id для авторизации в API
+    api_facade.set_internal_user_id(user["internal_user_id"])
+
     try:
         resumes = await api_facade.get_resumes()
         text = "\n".join(
@@ -483,6 +495,15 @@ async def update_vacancy_handler(message: types.Message):
 # 📄 Выбор активного резюме
 @dp.message(Command("select_resume"))
 async def select_resume_handler(message: types.Message):
+    user = await get_or_create_user(message.from_user)
+
+    if not user["is_registered"]:
+        await message.answer("❌ Сначала зарегистрируйтесь командой /register")
+        return
+
+    # Устанавливаем internal_user_id для авторизации в API
+    api_facade.set_internal_user_id(user["internal_user_id"])
+
     try:
         resume_id = message.text.split(maxsplit=1)[1]
     except IndexError:
@@ -499,6 +520,15 @@ async def select_resume_handler(message: types.Message):
 # 📢 Публикация/поднятие резюме
 @dp.message(Command("publish_resume"))
 async def publish_resume_handler(message: types.Message):
+    user = await get_or_create_user(message.from_user)
+
+    if not user["is_registered"]:
+        await message.answer("❌ Сначала зарегистрируйтесь командой /register")
+        return
+
+    # Устанавливаем internal_user_id для авторизации в API
+    api_facade.set_internal_user_id(user["internal_user_id"])
+
     try:
         resume_id = message.text.split(maxsplit=1)[1]
     except IndexError:
