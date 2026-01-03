@@ -69,7 +69,7 @@ def docker_compose():
 def api_base_url():
     """Фикстура для получения базового URL API после ожидания готовности"""
 
-    # Используем тестовый порт
+    # Используем тестовый порт без /api/v1 в конце
     base_url = os.getenv("API_BASE_URL", "http://localhost:8001")  # 8001 - тестовый порт
     max_attempts = 60  # 60 попыток по 5 секунд = 5 минут
     attempt = 0
