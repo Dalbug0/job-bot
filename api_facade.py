@@ -14,7 +14,7 @@ class BaseRequest(ABC):
         self,
         url: str,
         headers: Optional[Dict[str, str]] = None,
-        timeout: Optional[Union[float, httpx.Timeout]] = None
+        timeout: Optional[Union[float, httpx.Timeout]] = None,
     ):
         self.url = url
         self.headers = headers or {}
@@ -34,7 +34,7 @@ class GetRequest(BaseRequest):
         url: str,
         headers: Optional[Dict[str, str]] = None,
         params: Optional[Dict[str, Any]] = None,
-        timeout: Optional[Union[float, httpx.Timeout]] = None
+        timeout: Optional[Union[float, httpx.Timeout]] = None,
     ):
         super().__init__(url, headers, timeout)
         self.params = params
@@ -44,7 +44,9 @@ class GetRequest(BaseRequest):
         if self.timeout is not None:
             client_kwargs["timeout"] = self.timeout
         async with httpx.AsyncClient(**client_kwargs) as client:
-            return await client.get(self.url, headers=self.headers, params=self.params)
+            return await client.get(
+                self.url, headers=self.headers, params=self.params
+            )
 
 
 class PostRequest(BaseRequest):
@@ -55,7 +57,7 @@ class PostRequest(BaseRequest):
         url: str,
         data: Dict[str, Any],
         headers: Optional[Dict[str, str]] = None,
-        timeout: Optional[Union[float, httpx.Timeout]] = None
+        timeout: Optional[Union[float, httpx.Timeout]] = None,
     ):
         super().__init__(url, headers, timeout)
         self.data = data
@@ -78,7 +80,7 @@ class PutRequest(BaseRequest):
         url: str,
         data: Dict[str, Any],
         headers: Optional[Dict[str, str]] = None,
-        timeout: Optional[Union[float, httpx.Timeout]] = None
+        timeout: Optional[Union[float, httpx.Timeout]] = None,
     ):
         super().__init__(url, headers, timeout)
         self.data = data
@@ -101,7 +103,7 @@ class RequestFactory:
         url: str,
         headers: Optional[Dict[str, str]] = None,
         params: Optional[Dict[str, Any]] = None,
-        timeout: Optional[Union[float, httpx.Timeout]] = None
+        timeout: Optional[Union[float, httpx.Timeout]] = None,
     ) -> GetRequest:
         return GetRequest(url, headers, params, timeout)
 
@@ -110,7 +112,7 @@ class RequestFactory:
         url: str,
         data: Dict[str, Any],
         headers: Optional[Dict[str, str]] = None,
-        timeout: Optional[Union[float, httpx.Timeout]] = None
+        timeout: Optional[Union[float, httpx.Timeout]] = None,
     ) -> PostRequest:
         return PostRequest(url, data, headers, timeout)
 
@@ -119,7 +121,7 @@ class RequestFactory:
         url: str,
         data: Dict[str, Any],
         headers: Optional[Dict[str, str]] = None,
-        timeout: Optional[Union[float, httpx.Timeout]] = None
+        timeout: Optional[Union[float, httpx.Timeout]] = None,
     ) -> PutRequest:
         return PutRequest(url, data, headers, timeout)
 
@@ -212,7 +214,9 @@ class ApiFacade:
                 await self.refresh_access_token()
                 # Повторный запрос с новым токеном
                 headers = self._get_auth_headers()
-                request = self.request_factory.create_get_request(url, headers=headers)
+                request = self.request_factory.create_get_request(
+                    url, headers=headers
+                )
                 response = await request.execute()
                 if response.status_code == 200:
                     return response.json()
@@ -304,7 +308,9 @@ class ApiFacade:
         """Выбрать активное резюме"""
         url = f"{self.base_url}/api/v1/auth/hh/resumes/select/{resume_id}"
         headers = self._get_auth_headers()
-        request = self.request_factory.create_post_request(url, {}, headers=headers)
+        request = self.request_factory.create_post_request(
+            url, {}, headers=headers
+        )
         response = await request.execute()
 
         if response.status_code == 200:
@@ -320,7 +326,9 @@ class ApiFacade:
         """Опубликовать/поднять резюме"""
         url = f"{self.base_url}/api/v1/auth/hh/resumes/{resume_id}/publish"
         headers = self._get_auth_headers()
-        request = self.request_factory.create_post_request(url, {}, headers=headers)
+        request = self.request_factory.create_post_request(
+            url, {}, headers=headers
+        )
         response = await request.execute()
 
         if response.status_code == 200:
@@ -332,16 +340,14 @@ class ApiFacade:
                 f"Failed to publish resume: {response.status_code}, {response.text}"
             )
 
-    async def register_user(self, username: str, email: str, telegram_id: int) -> int:
+    async def register_user(
+        self, username: str, email: str, telegram_id: int
+    ) -> int:
         """Зарегистрировать нового пользователя через email"""
         password = secrets.token_urlsafe(16)  # Генерируем случайный пароль
 
         url = f"{self.base_url}/auth/register"
-        data = {
-            "username": username,
-            "email": email,
-            "password": password
-        }
+        data = {"username": username, "email": email, "password": password}
         request = self.request_factory.create_post_request(url, data)
         response = await request.execute()
 
@@ -353,15 +359,20 @@ class ApiFacade:
                 f"Failed to register user: {response.status_code}, {response.text}"
             )
 
-    async def register_telegram_user(self, telegram_id: int, telegram_username: str = None,
-                                   first_name: str = None, last_name: str = None) -> dict:
+    async def register_telegram_user(
+        self,
+        telegram_id: int,
+        telegram_username: str = None,
+        first_name: str = None,
+        last_name: str = None,
+    ) -> dict:
         """Зарегистрировать нового пользователя через Telegram"""
         url = f"{self.base_url}/auth/register/telegram"
         data = {
             "telegram_id": telegram_id,
             "telegram_username": telegram_username,
             "first_name": first_name,
-            "last_name": last_name
+            "last_name": last_name,
         }
         request = self.request_factory.create_post_request(url, data)
         response = await request.execute()
@@ -421,7 +432,7 @@ class ApiFacade:
         company: Optional[str] = None,
         location: Optional[str] = None,
         skip: int = 0,
-        limit: int = 10
+        limit: int = 10,
     ) -> list:
         """Поиск вакансий по параметрам"""
         url = f"{self.base_url}/vacancies/"

@@ -12,6 +12,7 @@ from aiogram.fsm.state import State, StatesGroup
 class RegistrationStates(StatesGroup):
     waiting_for_email = State()
 
+
 from api_facade import ApiFacade
 from config import settings
 
@@ -45,14 +46,18 @@ async def get_or_create_user(telegram_user: types.User) -> Dict:
         # Пользователь найден в базе данных - обновляем локальное хранилище
         user_storage[user_id] = {
             "telegram_id": user_id,
-            "username": telegram_user.username or user_info.get("telegram_username"),
-            "first_name": telegram_user.first_name or user_info.get("first_name"),
+            "username": telegram_user.username
+            or user_info.get("telegram_username"),
+            "first_name": telegram_user.first_name
+            or user_info.get("first_name"),
             "last_name": telegram_user.last_name or user_info.get("last_name"),
             "email": None,  # Telegram пользователи не имеют email
-            "internal_user_id": user_info["id"],  # В ответе поле называется "id"
+            "internal_user_id": user_info[
+                "id"
+            ],  # В ответе поле называется "id"
             "is_registered": True,
             "registration_type": "telegram",
-            "from_database": True  # Флаг, что данные получены из БД
+            "from_database": True,  # Флаг, что данные получены из БД
         }
         return user_storage[user_id]
 
@@ -63,7 +68,7 @@ async def get_or_create_user(telegram_user: types.User) -> Dict:
                 telegram_id=user_id,
                 telegram_username=telegram_user.username,
                 first_name=telegram_user.first_name,
-                last_name=telegram_user.last_name
+                last_name=telegram_user.last_name,
             )
 
             user_storage[user_id] = {
@@ -75,7 +80,7 @@ async def get_or_create_user(telegram_user: types.User) -> Dict:
                 "internal_user_id": registration_result["user_id"],
                 "is_registered": True,
                 "registration_type": "telegram",
-                "from_database": False  # Данные только что зарегистрированы
+                "from_database": False,  # Данные только что зарегистрированы
             }
             return user_storage[user_id]
 
@@ -87,18 +92,23 @@ async def get_or_create_user(telegram_user: types.User) -> Dict:
                 # Возможно, есть несогласованность в данных
                 # Попробуем еще раз получить информацию
                 try:
-                    user_info = await api_facade.get_telegram_user_info(user_id)
+                    user_info = await api_facade.get_telegram_user_info(
+                        user_id
+                    )
                     if user_info:
                         user_storage[user_id] = {
                             "telegram_id": user_id,
-                            "username": telegram_user.username or user_info.get("telegram_username"),
-                            "first_name": telegram_user.first_name or user_info.get("first_name"),
-                            "last_name": telegram_user.last_name or user_info.get("last_name"),
+                            "username": telegram_user.username
+                            or user_info.get("telegram_username"),
+                            "first_name": telegram_user.first_name
+                            or user_info.get("first_name"),
+                            "last_name": telegram_user.last_name
+                            or user_info.get("last_name"),
                             "email": None,
                             "internal_user_id": user_info["id"],
                             "is_registered": True,
                             "registration_type": "telegram",
-                            "from_database": True
+                            "from_database": True,
                         }
                         return user_storage[user_id]
                 except Exception:
@@ -114,7 +124,7 @@ async def get_or_create_user(telegram_user: types.User) -> Dict:
                 "internal_user_id": None,
                 "is_registered": False,
                 "registration_type": None,
-                "from_database": False
+                "from_database": False,
             }
             return user_storage[user_id]
 
@@ -125,7 +135,9 @@ def update_user_email(telegram_id: int, email: str) -> None:
         user_storage[telegram_id]["email"] = email
 
 
-def update_user_registration_status(telegram_id: int, internal_user_id: int) -> None:
+def update_user_registration_status(
+    telegram_id: int, internal_user_id: int
+) -> None:
     """Обновить статус регистрации пользователя"""
     if telegram_id in user_storage:
         user_storage[telegram_id]["internal_user_id"] = internal_user_id
@@ -136,7 +148,9 @@ def update_user_registration_status(telegram_id: int, internal_user_id: int) -> 
 async def start_handler(message: types.Message):
     user = await get_or_create_user(message.from_user)
 
-    status = "Зарегистрирован" if user["is_registered"] else "Не зарегистрирован"
+    status = (
+        "Зарегистрирован" if user["is_registered"] else "Не зарегистрирован"
+    )
     hh_status = "Подключен" if user.get("internal_user_id") else "Не подключен"
 
     await message.answer(
@@ -162,7 +176,9 @@ async def register_handler(message: types.Message, state: FSMContext):
     user = await get_or_create_user(message.from_user)
 
     if user["is_registered"] and user.get("registration_type") == "telegram":
-        await message.answer("✅ Вы уже автоматически зарегистрированы через Telegram!")
+        await message.answer(
+            "✅ Вы уже автоматически зарегистрированы через Telegram!"
+        )
         return
     elif user["is_registered"]:
         await message.answer("Вы уже зарегистрированы в системе через email!")
@@ -191,9 +207,7 @@ async def process_email(message: types.Message, state: FSMContext):
         username = telegram_user.username or f"user_{telegram_user.id}"
 
         internal_user_id = await api_facade.register_user(
-            username=username,
-            email=email,
-            telegram_id=telegram_user.id
+            username=username, email=email, telegram_id=telegram_user.id
         )
 
         # Обновляем локальное хранилище
@@ -234,7 +248,9 @@ async def login_handler(message: types.Message):
         else:
             await message.answer("❌ Не удалось получить ссылку авторизации")
     except Exception as e:
-        await message.answer(f"❌ Не удалось получить ссылку на авторизацию: {str(e)}")
+        await message.answer(
+            f"❌ Не удалось получить ссылку на авторизацию: {str(e)}"
+        )
 
 
 @dp.message(Command("check_hh_status"))
@@ -288,11 +304,13 @@ async def me_handler(message: types.Message):
 
     if user["is_registered"]:
         text += f"Внутренний ID: {user['internal_user_id']}\n"
-        if user['email']:
+        if user["email"]:
             text += f"Email: {user['email']}\n"
 
         try:
-            hh_status = await api_facade.get_hh_token_status(user["internal_user_id"])
+            hh_status = await api_facade.get_hh_token_status(
+                user["internal_user_id"]
+            )
             if hh_status.get("status") == "found":
                 text += "HH.ru: ✅ Подключен\n"
                 text += f"Токен создан: {hh_status.get('created_at', 'N/A')}\n"
@@ -345,7 +363,9 @@ async def vacancies_handler(message: types.Message):
         else:
             await message.answer("Вакансий пока нет.")
     except Exception as e:
-        await message.answer(f"❌ Ошибка при получении списка вакансий: {str(e)}")
+        await message.answer(
+            f"❌ Ошибка при получении списка вакансий: {str(e)}"
+        )
 
 
 @dp.message(Command("search_vacancies"))
@@ -357,7 +377,7 @@ async def search_vacancies_handler(message: types.Message):
         "Примеры:\n"
         "/search Yandex Москва\n"
         "/search Google\n"
-        "/search \"\" Санкт-Петербург\n\n"
+        '/search "" Санкт-Петербург\n\n'
         "Оставьте параметр пустым, чтобы искать по всем значениям."
     )
 
@@ -368,18 +388,26 @@ async def search_handler(message: types.Message):
         # Парсим аргументы: /search компания локация
         parts = message.text.split(maxsplit=2)
         if len(parts) < 2:
-            await message.answer("Используйте формат: /search [компания] [локация]")
+            await message.answer(
+                "Используйте формат: /search [компания] [локация]"
+            )
             return
 
         company = None
         location = None
 
         if len(parts) >= 2:
-            company = parts[1] if parts[1] != '""' and parts[1] != "''" else None
+            company = (
+                parts[1] if parts[1] != '""' and parts[1] != "''" else None
+            )
         if len(parts) >= 3:
-            location = parts[2] if parts[2] != '""' and parts[2] != "''" else None
+            location = (
+                parts[2] if parts[2] != '""' and parts[2] != "''" else None
+            )
 
-        vacancies = await api_facade.search_vacancies(company=company, location=location)
+        vacancies = await api_facade.search_vacancies(
+            company=company, location=location
+        )
 
         if vacancies:
             text = format_vacancies_list(vacancies)
@@ -405,18 +433,18 @@ def format_vacancies_list(vacancies: list) -> str:
     """Форматировать список вакансий для отображения"""
     formatted = []
     for v in vacancies[:10]:  # Ограничиваем до 10 вакансий
-        title = v.get('title', 'N/A')
-        company = v.get('company', 'N/A')
-        location = v.get('location', 'N/A')
-        salary = v.get('salary')
+        title = v.get("title", "N/A")
+        company = v.get("company", "N/A")
+        location = v.get("location", "N/A")
+        salary = v.get("salary")
 
         # Форматируем зарплату
         salary_text = ""
         if salary:
             if isinstance(salary, dict):
-                from_salary = salary.get('from')
-                to_salary = salary.get('to')
-                currency = salary.get('currency', 'RUB')
+                from_salary = salary.get("from")
+                to_salary = salary.get("to")
+                currency = salary.get("currency", "RUB")
 
                 if from_salary and to_salary:
                     salary_text = f"💰 {from_salary}-{to_salary} {currency}"
@@ -425,14 +453,14 @@ def format_vacancies_list(vacancies: list) -> str:
                 elif to_salary:
                     salary_text = f"💰 до {to_salary} {currency}"
 
-        url = v.get('url', '')
+        url = v.get("url", "")
         if url:
             url_text = f"🔗 {url}"
         else:
             url_text = ""
 
         vacancy_text = f"🏢 {title}\n📍 {company}"
-        if location and location != 'N/A':
+        if location and location != "N/A":
             vacancy_text += f", {location}"
         if salary_text:
             vacancy_text += f"\n{salary_text}"

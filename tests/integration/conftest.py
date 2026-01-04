@@ -1,11 +1,12 @@
 # tests/integration/conftest.py
 
+import os
 import subprocess
 import time
-import requests
-import pytest
-import os
 from pathlib import Path
+
+import pytest
+import requests
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -17,23 +18,34 @@ def docker_compose():
     docker_compose_file = project_root / "docker-compose.test.yml"
 
     if not docker_compose_file.exists():
-        pytest.skip(f"docker-compose.test.yml not found at {docker_compose_file}")
+        pytest.skip(
+            f"docker-compose.test.yml not found at {docker_compose_file}"
+        )
 
     # Проверяем наличие необходимых .env файлов
     env_files = [project_root / ".env.dev", project_root / ".env.hh.dev"]
     missing_env_files = [f for f in env_files if not f.exists()]
 
     if missing_env_files:
-        pytest.skip(f"Missing environment files: {[str(f) for f in missing_env_files]}")
+        pytest.skip(
+            f"Missing environment files: {[str(f) for f in missing_env_files]}"
+        )
 
     # Останавливаем и удаляем предыдущие контейнеры
     try:
         subprocess.run(
-            ["docker-compose", "-f", str(docker_compose_file), "down", "-v", "--remove-orphans"],
+            [
+                "docker-compose",
+                "-f",
+                str(docker_compose_file),
+                "down",
+                "-v",
+                "--remove-orphans",
+            ],
             check=True,
             capture_output=True,
             text=True,
-            cwd=project_root
+            cwd=project_root,
         )
     except subprocess.CalledProcessError:
         pass  # Игнорируем ошибки при остановке
@@ -45,7 +57,7 @@ def docker_compose():
             check=True,
             capture_output=True,
             text=True,
-            cwd=project_root
+            cwd=project_root,
         )
     except subprocess.CalledProcessError as e:
         pytest.fail(f"Failed to start docker-compose: {e.stderr}")
@@ -59,7 +71,7 @@ def docker_compose():
             check=True,
             capture_output=True,
             text=True,
-            cwd=project_root
+            cwd=project_root,
         )
     except subprocess.CalledProcessError as e:
         print(f"Warning: Failed to stop docker-compose: {e.stderr}")
@@ -70,7 +82,9 @@ def api_base_url():
     """Фикстура для получения базового URL API после ожидания готовности"""
 
     # Используем тестовый порт без /api/v1 в конце
-    base_url = os.getenv("API_BASE_URL", "http://localhost:8001")  # 8001 - тестовый порт
+    base_url = os.getenv(
+        "API_BASE_URL", "http://localhost:8001"
+    )  # 8001 - тестовый порт
     max_attempts = 60  # 60 попыток по 5 секунд = 5 минут
     attempt = 0
 
@@ -83,7 +97,9 @@ def api_base_url():
                 return base_url
         except requests.RequestException as e:
             if attempt % 10 == 0:  # Логируем каждые 10 попыток
-                print(f"Waiting for API at {base_url}... attempt {attempt}/{max_attempts} ({e})")
+                print(
+                    f"Waiting for API at {base_url}... attempt {attempt}/{max_attempts} ({e})"
+                )
 
         attempt += 1
         time.sleep(5)
@@ -113,15 +129,15 @@ def _show_container_logs():
             capture_output=True,
             text=True,
             cwd=project_root,
-            timeout=30
+            timeout=30,
         )
 
         if result.returncode == 0:
             logs = result.stdout + result.stderr
             print(f"\n=== Container logs ===")
             # Показываем последние 100 строк логов
-            lines = logs.split('\n')[-100:]
-            print('\n'.join(lines))
+            lines = logs.split("\n")[-100:]
+            print("\n".join(lines))
         else:
             print(f"Failed to get container logs: {result.stderr}")
 

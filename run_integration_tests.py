@@ -8,9 +8,9 @@
 3. Показывает понятные сообщения об ошибках
 """
 
+import os
 import subprocess
 import sys
-import os
 from pathlib import Path
 
 
@@ -18,10 +18,7 @@ def check_docker():
     """Проверяет наличие Docker и docker-compose"""
     try:
         result = subprocess.run(
-            ["docker", "--version"],
-            capture_output=True,
-            text=True,
-            check=True
+            ["docker", "--version"], capture_output=True, text=True, check=True
         )
         print(f"✓ Docker: {result.stdout.strip()}")
     except (subprocess.CalledProcessError, FileNotFoundError):
@@ -33,7 +30,7 @@ def check_docker():
             ["docker-compose", "--version"],
             capture_output=True,
             text=True,
-            check=True
+            check=True,
         )
         print(f"✓ Docker Compose: {result.stdout.strip()}")
     except (subprocess.CalledProcessError, FileNotFoundError):
@@ -46,10 +43,7 @@ def check_docker():
 def check_env_files():
     """Проверяет наличие необходимых файлов окружения"""
     project_root = Path(__file__).parent.parent
-    env_files = [
-        project_root / ".env.dev",
-        project_root / ".env.hh.dev"
-    ]
+    env_files = [project_root / ".env.dev", project_root / ".env.hh.dev"]
 
     missing_files = []
     for env_file in env_files:
@@ -58,7 +52,9 @@ def check_env_files():
 
     if missing_files:
         print(f"✗ Отсутствуют файлы окружения: {', '.join(missing_files)}")
-        print("  Создайте их на основе примеров или получите от администратора проекта")
+        print(
+            "  Создайте их на основе примеров или получите от администратора проекта"
+        )
         return False
 
     print("✓ Файлы окружения найдены")
@@ -74,18 +70,25 @@ def run_tests():
 
     # Запускаем тесты
     try:
-        result = subprocess.run([
-            sys.executable, "-m", "pytest",
-            "tests/integration/",
-            "-v",
-            "--tb=short"
-        ], check=True)
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "pytest",
+                "tests/integration/",
+                "-v",
+                "--tb=short",
+            ],
+            check=True,
+        )
 
         print("\n✅ Все интеграционные тесты пройдены!")
         return True
 
     except subprocess.CalledProcessError as e:
-        print(f"\n❌ Интеграционные тесты провалились (код выхода: {e.returncode})")
+        print(
+            f"\n❌ Интеграционные тесты провалились (код выхода: {e.returncode})"
+        )
         print("Подробности выше. Проверьте логи Docker контейнеров:")
         print("  docker-compose logs api")
         return False

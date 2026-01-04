@@ -1,9 +1,10 @@
 # tests/test_request_factory.py
 
-import pytest
 from unittest.mock import AsyncMock, patch
 
-from api_facade import RequestFactory, GetRequest, PostRequest, PutRequest
+import pytest
+
+from api_facade import GetRequest, PostRequest, PutRequest, RequestFactory
 
 
 @pytest.mark.unit
@@ -28,7 +29,9 @@ class TestRequestFactory:
         params = {"page": 1, "limit": 10}
         timeout = 30.0
 
-        request = RequestFactory.create_get_request(url, headers, params, timeout)
+        request = RequestFactory.create_get_request(
+            url, headers, params, timeout
+        )
 
         assert isinstance(request, GetRequest)
         assert request.url == url
@@ -56,7 +59,9 @@ class TestRequestFactory:
         headers = {"Content-Type": "application/json"}
         timeout = 60.0
 
-        request = RequestFactory.create_post_request(url, data, headers, timeout)
+        request = RequestFactory.create_post_request(
+            url, data, headers, timeout
+        )
 
         assert isinstance(request, PostRequest)
         assert request.url == url
@@ -84,7 +89,9 @@ class TestRequestFactory:
         headers = {"Authorization": "Bearer token"}
         timeout = 45.0
 
-        request = RequestFactory.create_put_request(url, data, headers, timeout)
+        request = RequestFactory.create_put_request(
+            url, data, headers, timeout
+        )
 
         assert isinstance(request, PutRequest)
         assert request.url == url
@@ -103,6 +110,7 @@ class TestRequestFactory:
 
         with patch("httpx.AsyncClient") as mock_client_class:
             from unittest.mock import AsyncMock
+
             mock_client = mock_client_class.return_value
             mock_client.__aenter__.return_value = mock_client
             mock_client.__aexit__.return_value = None
@@ -123,10 +131,13 @@ class TestRequestFactory:
         headers = {"Content-Type": "application/json"}
         timeout = 30.0
 
-        request = RequestFactory.create_post_request(url, data, headers, timeout)
+        request = RequestFactory.create_post_request(
+            url, data, headers, timeout
+        )
 
         with patch("httpx.AsyncClient") as mock_client_class:
             from unittest.mock import AsyncMock
+
             mock_client = mock_client_class.return_value
             mock_client.__aenter__.return_value = mock_client
             mock_client.__aexit__.return_value = None
@@ -150,6 +161,7 @@ class TestRequestFactory:
 
         with patch("httpx.AsyncClient") as mock_client_class:
             from unittest.mock import AsyncMock
+
             mock_client = mock_client_class.return_value
             mock_client.__aenter__.return_value = mock_client
             mock_client.__aexit__.return_value = None

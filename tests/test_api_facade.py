@@ -1,7 +1,8 @@
 # tests/test_api_facade.py
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
 
 from api_facade import ApiFacade
 
@@ -52,48 +53,69 @@ class TestApiFacade:
         assert headers == {"Authorization": f"Bearer {token}"}
 
     @pytest.mark.asyncio
-    async def test_refresh_access_token_success(self, api_facade, mock_httpx_response):
+    async def test_refresh_access_token_success(
+        self, api_facade, mock_httpx_response
+    ):
         """Тест успешного обновления access token"""
-        mock_response = mock_httpx_response(status_code=200, json_data={
-            "access_token": "new_access_token",
-            "token_type": "bearer"
-        })
+        mock_response = mock_httpx_response(
+            status_code=200,
+            json_data={
+                "access_token": "new_access_token",
+                "token_type": "bearer",
+            },
+        )
 
-        with patch.object(api_facade.request_factory, 'create_post_request') as mock_create_request:
+        with patch.object(
+            api_facade.request_factory, "create_post_request"
+        ) as mock_create_request:
             mock_request = AsyncMock()
             mock_request.execute.return_value = mock_response
             mock_create_request.return_value = mock_request
 
             result = await api_facade.refresh_access_token()
 
-            expected_url = f"{api_facade.base_url}{api_facade.auth_router_url}/refresh"
+            expected_url = (
+                f"{api_facade.base_url}{api_facade.auth_router_url}/refresh"
+            )
             mock_create_request.assert_called_once_with(expected_url, {})
 
             assert result["access_token"] == "new_access_token"
             assert api_facade.get_access_token() == "new_access_token"
 
     @pytest.mark.asyncio
-    async def test_refresh_access_token_failure(self, api_facade, mock_httpx_response):
+    async def test_refresh_access_token_failure(
+        self, api_facade, mock_httpx_response
+    ):
         """Тест неудачного обновления access token"""
-        mock_response = mock_httpx_response(status_code=401, text="Unauthorized")
+        mock_response = mock_httpx_response(
+            status_code=401, text="Unauthorized"
+        )
 
-        with patch.object(api_facade.request_factory, 'create_post_request') as mock_create_request:
+        with patch.object(
+            api_facade.request_factory, "create_post_request"
+        ) as mock_create_request:
             mock_request = AsyncMock()
             mock_request.execute.return_value = mock_response
             mock_create_request.return_value = mock_request
 
-            with pytest.raises(Exception, match="Failed to refresh access token"):
+            with pytest.raises(
+                Exception, match="Failed to refresh access token"
+            ):
                 await api_facade.refresh_access_token()
 
     @pytest.mark.asyncio
     async def test_get_me_success(self, api_facade, mock_httpx_response):
         """Тест успешного получения информации о пользователе"""
         user_data = {"id": 1, "email": "test@example.com"}
-        mock_response = mock_httpx_response(status_code=200, json_data=user_data)
+        mock_response = mock_httpx_response(
+            status_code=200, json_data=user_data
+        )
 
         api_facade.set_access_token("valid_token")
 
-        with patch.object(api_facade.request_factory, 'create_get_request') as mock_create_request:
+        with patch.object(
+            api_facade.request_factory, "create_get_request"
+        ) as mock_create_request:
             mock_request = AsyncMock()
             mock_request.execute.return_value = mock_response
             mock_create_request.return_value = mock_request
@@ -102,16 +124,22 @@ class TestApiFacade:
 
             expected_url = f"{api_facade.base_url}/users/me"
             expected_headers = {"Authorization": "Bearer valid_token"}
-            mock_create_request.assert_called_once_with(expected_url, headers=expected_headers)
+            mock_create_request.assert_called_once_with(
+                expected_url, headers=expected_headers
+            )
 
             assert result == user_data
 
     @pytest.mark.asyncio
     async def test_get_me_unauthorized(self, api_facade, mock_httpx_response):
         """Тест получения информации о пользователе без авторизации"""
-        mock_response = mock_httpx_response(status_code=401, text="Unauthorized")
+        mock_response = mock_httpx_response(
+            status_code=401, text="Unauthorized"
+        )
 
-        with patch.object(api_facade.request_factory, 'create_get_request') as mock_create_request:
+        with patch.object(
+            api_facade.request_factory, "create_get_request"
+        ) as mock_create_request:
             mock_request = AsyncMock()
             mock_request.execute.return_value = mock_response
             mock_create_request.return_value = mock_request
@@ -120,19 +148,27 @@ class TestApiFacade:
                 await api_facade.get_me()
 
     @pytest.mark.asyncio
-    async def test_get_login_url_success(self, api_facade, mock_httpx_response):
+    async def test_get_login_url_success(
+        self, api_facade, mock_httpx_response
+    ):
         """Тест успешного получения URL авторизации"""
         login_data = {"login_url": "https://example.com/oauth"}
-        mock_response = mock_httpx_response(status_code=200, json_data=login_data)
+        mock_response = mock_httpx_response(
+            status_code=200, json_data=login_data
+        )
 
-        with patch.object(api_facade.request_factory, 'create_get_request') as mock_create_request:
+        with patch.object(
+            api_facade.request_factory, "create_get_request"
+        ) as mock_create_request:
             mock_request = AsyncMock()
             mock_request.execute.return_value = mock_response
             mock_create_request.return_value = mock_request
 
             result = await api_facade.get_login_url()
 
-            expected_url = f"{api_facade.base_url}{api_facade.auth_router_url}/login"
+            expected_url = (
+                f"{api_facade.base_url}{api_facade.auth_router_url}/login"
+            )
             mock_create_request.assert_called_once_with(expected_url)
 
             assert result == "https://example.com/oauth"
@@ -141,11 +177,15 @@ class TestApiFacade:
     async def test_get_resumes_success(self, api_facade, mock_httpx_response):
         """Тест успешного получения списка резюме"""
         resumes_data = {"items": [{"id": "1", "title": "Test Resume"}]}
-        mock_response = mock_httpx_response(status_code=200, json_data=resumes_data)
+        mock_response = mock_httpx_response(
+            status_code=200, json_data=resumes_data
+        )
 
         api_facade.set_access_token("valid_token")
 
-        with patch.object(api_facade.request_factory, 'create_get_request') as mock_create_request:
+        with patch.object(
+            api_facade.request_factory, "create_get_request"
+        ) as mock_create_request:
             mock_request = AsyncMock()
             mock_request.execute.return_value = mock_response
             mock_create_request.return_value = mock_request
@@ -154,50 +194,72 @@ class TestApiFacade:
 
             expected_url = f"{api_facade.base_url}/hh/resumes"
             expected_headers = {"Authorization": "Bearer valid_token"}
-            mock_create_request.assert_called_once_with(expected_url, headers=expected_headers)
+            mock_create_request.assert_called_once_with(
+                expected_url, headers=expected_headers
+            )
 
             assert result == resumes_data
 
     @pytest.mark.asyncio
-    async def test_select_resume_success(self, api_facade, mock_httpx_response):
+    async def test_select_resume_success(
+        self, api_facade, mock_httpx_response
+    ):
         """Тест успешного выбора резюме"""
         resume_id = "test_resume_123"
         response_data = {"status": "selected"}
-        mock_response = mock_httpx_response(status_code=200, json_data=response_data)
+        mock_response = mock_httpx_response(
+            status_code=200, json_data=response_data
+        )
 
         api_facade.set_access_token("valid_token")
 
-        with patch.object(api_facade.request_factory, 'create_post_request') as mock_create_request:
+        with patch.object(
+            api_facade.request_factory, "create_post_request"
+        ) as mock_create_request:
             mock_request = AsyncMock()
             mock_request.execute.return_value = mock_response
             mock_create_request.return_value = mock_request
 
             result = await api_facade.select_resume(resume_id)
 
-            expected_url = f"{api_facade.base_url}/hh/resumes/select/{resume_id}"
+            expected_url = (
+                f"{api_facade.base_url}/hh/resumes/select/{resume_id}"
+            )
             expected_headers = {"Authorization": "Bearer valid_token"}
-            mock_create_request.assert_called_once_with(expected_url, {}, headers=expected_headers)
+            mock_create_request.assert_called_once_with(
+                expected_url, {}, headers=expected_headers
+            )
 
             assert result == response_data
 
     @pytest.mark.asyncio
-    async def test_publish_resume_success(self, api_facade, mock_httpx_response):
+    async def test_publish_resume_success(
+        self, api_facade, mock_httpx_response
+    ):
         """Тест успешной публикации резюме"""
         resume_id = "test_resume_123"
         response_data = {"status": "published"}
-        mock_response = mock_httpx_response(status_code=200, json_data=response_data)
+        mock_response = mock_httpx_response(
+            status_code=200, json_data=response_data
+        )
 
         api_facade.set_access_token("valid_token")
 
-        with patch.object(api_facade.request_factory, 'create_post_request') as mock_create_request:
+        with patch.object(
+            api_facade.request_factory, "create_post_request"
+        ) as mock_create_request:
             mock_request = AsyncMock()
             mock_request.execute.return_value = mock_response
             mock_create_request.return_value = mock_request
 
             result = await api_facade.publish_resume(resume_id)
 
-            expected_url = f"{api_facade.base_url}/hh/resumes/{resume_id}/publish"
+            expected_url = (
+                f"{api_facade.base_url}/hh/resumes/{resume_id}/publish"
+            )
             expected_headers = {"Authorization": "Bearer valid_token"}
-            mock_create_request.assert_called_once_with(expected_url, {}, headers=expected_headers)
+            mock_create_request.assert_called_once_with(
+                expected_url, {}, headers=expected_headers
+            )
 
             assert result == response_data
