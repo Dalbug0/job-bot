@@ -339,8 +339,8 @@ async def resumes_handler(message: types.Message):
         await message.answer("❌ Сначала зарегистрируйтесь командой /register")
         return
 
-    # Устанавливаем internal_user_id для авторизации в API
-    api_facade.set_internal_user_id(user["internal_user_id"])
+    # Устанавливаем telegram_id для авторизации в API
+    api_facade.set_telegram_id(user["telegram_id"])
 
     try:
         resumes = await api_facade.get_resumes()
@@ -529,8 +529,8 @@ async def select_resume_handler(message: types.Message):
         await message.answer("❌ Сначала зарегистрируйтесь командой /register")
         return
 
-    # Устанавливаем internal_user_id для авторизации в API
-    api_facade.set_internal_user_id(user["internal_user_id"])
+    # Устанавливаем telegram_id для авторизации в API
+    api_facade.set_telegram_id(user["telegram_id"])
 
     try:
         resume_id = message.text.split(maxsplit=1)[1]
@@ -554,8 +554,8 @@ async def publish_resume_handler(message: types.Message):
         await message.answer("❌ Сначала зарегистрируйтесь командой /register")
         return
 
-    # Устанавливаем internal_user_id для авторизации в API
-    api_facade.set_internal_user_id(user["internal_user_id"])
+    # Устанавливаем telegram_id для авторизации в API
+    api_facade.set_telegram_id(user["telegram_id"])
 
     try:
         resume_id = message.text.split(maxsplit=1)[1]

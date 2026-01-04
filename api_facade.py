@@ -135,6 +135,7 @@ class ApiFacade:
         self.auth_router_url = "/auth"
         self._access_token: Optional[str] = None
         self._internal_user_id: Optional[int] = None
+        self._telegram_id: Optional[int] = None
 
     def set_access_token(self, token: str) -> None:
         """Установить access token для авторизации"""
@@ -160,14 +161,26 @@ class ApiFacade:
         """Очистить internal user ID"""
         self._internal_user_id = None
 
+    def set_telegram_id(self, telegram_id: int) -> None:
+        """Установить Telegram ID для авторизации через X-User-ID заголовок"""
+        self._telegram_id = telegram_id
+
+    def get_telegram_id(self) -> Optional[int]:
+        """Получить Telegram ID"""
+        return self._telegram_id
+
+    def clear_telegram_id(self) -> None:
+        """Очистить Telegram ID"""
+        self._telegram_id = None
+
     def _get_auth_headers(self) -> Dict[str, str]:
         """Получить заголовки с авторизацией"""
         headers = {}
         if self._access_token:
             headers["Authorization"] = f"Bearer {self._access_token}"
-        elif self._internal_user_id:
-            # Для Telegram пользователей используем X-User-ID
-            headers["X-User-ID"] = str(self._internal_user_id)
+        elif self._telegram_id:
+            # Для Telegram пользователей используем X-User-ID с telegram_id
+            headers["X-User-ID"] = str(self._telegram_id)
         return headers
 
     async def refresh_access_token(self) -> Dict[str, Any]:
