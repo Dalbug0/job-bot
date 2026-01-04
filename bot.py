@@ -168,6 +168,7 @@ async def start_handler(message: types.Message):
         "/vacancies - список вакансий\n"
         "/search - поиск вакансий по компании и локации\n"
         "/refresh - обновить токен доступа"
+        "/hh_me - информация о профиле HH.ru"
     )
 
 
@@ -320,6 +321,56 @@ async def me_handler(message: types.Message):
             text += f"HH.ru статус: Ошибка получения - {str(e)}\n"
 
     await message.answer(text)
+
+
+@dp.message(Command("hh_me"))
+async def hh_me_handler(message: types.Message):
+    user = await get_or_create_user(message.from_user)
+
+    if not user["is_registered"]:
+        await message.answer("❌ Сначала зарегистрируйтесь командой /register")
+        return
+
+    api_facade.set_telegram_id(user["telegram_id"])
+
+    try:
+        hh_user_info = await api_facade.get_hh_user_info()
+        text = "🏢 Информация о профиле HH.ru:\n"
+        text += f"ID: {hh_user_info.get('id', 'N/A')}\n"
+        text += f"Имя: {hh_user_info.get('first_name', 'N/A')}\n"
+        text += f"Фамилия: {hh_user_info.get('last_name', 'N/A')}\n"
+        text += f"Email: {hh_user_info.get('email', 'N/A')}\n"
+        text += f"Телефон: {hh_user_info.get('phone', 'N/A')}\n"
+
+        # Проверяем тип аккаунта
+        if 'is_employer' in hh_user_info:
+            if hh_user_info['is_employer']:
+                text += "Тип аккаунта: 🏢 Работодатель\n"
+            else:
+                text += "Тип аккаунта: 👤 Соискатель\n"
+
+        # Проверяем наличие резюме
+        text += "\n📄 Проверка резюме:\n"
+        try:
+            resumes = await api_facade.get_resumes()
+            items = resumes.get("items", [])
+            if items:
+                text += f"✅ Найдено резюме: {len(items)} шт.\n"
+                for resume in items[:3]:  # Показываем максимум 3 резюме
+                    title = resume.get('title', 'Без названия')
+                    resume_id = resume.get('id', 'N/A')
+                    text += f"  • {title} (ID: {resume_id})\n"
+                if len(items) > 3:
+                    text += f"  ... и ещё {len(items) - 3} резюме\n"
+            else:
+                text += "❌ Резюме не найдены\n"
+                text += "💡 Создайте резюме на hh.ru, чтобы использовать функции бота\n"
+        except Exception as e:
+            text += f"❌ Ошибка проверки резюме: {str(e)}\n"
+
+        await message.answer(text)
+    except Exception as e:
+        await message.answer(f"❌ Ошибка получения информации HH.ru: {str(e)}")
 
 
 @dp.message(Command("refresh"))

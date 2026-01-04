@@ -241,6 +241,22 @@ class ApiFacade:
                 f"Failed to get user info: {response.status_code}, {response.text}"
             )
 
+    async def get_hh_user_info(self) -> Dict[str, Any]:
+        """Получить информацию о текущем пользователе HH.ru"""
+        url = f"{self.base_url}/api/v1/auth/hh/me"
+        headers = self._get_auth_headers()
+        request = self.request_factory.create_get_request(url, headers=headers)
+        response = await request.execute()
+
+        if response.status_code == 200:
+            return response.json()
+        elif response.status_code in (401, 403):
+            raise Exception("Не авторизован. Подключите аккаунт через /login")
+        else:
+            raise Exception(
+                f"Failed to get HH user info: {response.status_code}, {response.text}"
+            )
+
     async def get_resumes(self) -> Dict[str, Any]:
         """Получить список резюме"""
         url = f"{self.base_url}/api/v1/auth/hh/resumes"
