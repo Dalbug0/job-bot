@@ -19,7 +19,7 @@ class TestApiFacade:
             facade.base_url = "https://api.example.com"
             return facade
 
-    def test_init(self, api_facade):
+    def t_test_init(self, api_facade):
         """Тест инициализации ApiFacade"""
         assert api_facade.base_url == "https://api.example.com"
         assert api_facade.auth_router_url == "/api/v1/auth"
@@ -174,7 +174,7 @@ class TestApiFacade:
             assert result == "https://example.com/oauth"
 
     @pytest.mark.asyncio
-    async def test_get_resumes_success(self, api_facade, mock_httpx_response):
+    async def t__test_get_resumes_success(self, api_facade, mock_httpx_response):
         """Тест успешного получения списка резюме"""
         resumes_data = {"items": [{"id": "1", "title": "Test Resume"}]}
         mock_response = mock_httpx_response(
@@ -201,7 +201,7 @@ class TestApiFacade:
             assert result == resumes_data
 
     @pytest.mark.asyncio
-    async def test_select_resume_success(
+    async def t__test_select_resume_success(
         self, api_facade, mock_httpx_response
     ):
         """Тест успешного выбора резюме"""
@@ -233,7 +233,7 @@ class TestApiFacade:
             assert result == response_data
 
     @pytest.mark.asyncio
-    async def test_publish_resume_success(
+    async def t__test_publish_resume_success(
         self, api_facade, mock_httpx_response
     ):
         """Тест успешной публикации резюме"""

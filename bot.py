@@ -162,12 +162,8 @@ async def start_handler(message: types.Message):
         "/login - получить ссылку на авторизацию HH.ru\n"
         "/check_hh_status - проверить статус HH.ru\n"
         "/me - информация о профиле\n"
-        "/resumes - список резюме\n"
-        "/select_resume <id> - выбрать активное резюме\n"
-        "/publish_resume <id> - опубликовать/поднять резюме\n"
         "/vacancies - список вакансий\n"
         "/search - поиск вакансий по компании и локации\n"
-        "/refresh - обновить токен доступа"
         "/hh_me - информация о профиле HH.ru"
     )
 
@@ -270,10 +266,6 @@ async def check_hh_status_handler(message: types.Message):
         if status.get("status") == "found":
             await message.answer(
                 "✅ HH.ru успешно подключен!\n\n"
-                "Теперь вы можете:\n"
-                "/resumes - просмотреть резюме\n"
-                "/select_resume <id> - выбрать активное резюме\n"
-                "/publish_resume <id> - опубликовать резюме"
             )
         else:
             await message.answer(
@@ -349,24 +341,6 @@ async def hh_me_handler(message: types.Message):
             else:
                 text += "Тип аккаунта: 👤 Соискатель\n"
 
-        # Проверяем наличие резюме
-        text += "\n📄 Проверка резюме:\n"
-        try:
-            resumes = await api_facade.get_resumes()
-            items = resumes.get("items", [])
-            if items:
-                text += f"✅ Найдено резюме: {len(items)} шт.\n"
-                for resume in items[:3]:  # Показываем максимум 3 резюме
-                    title = resume.get('title', 'Без названия')
-                    resume_id = resume.get('id', 'N/A')
-                    text += f"  • {title} (ID: {resume_id})\n"
-                if len(items) > 3:
-                    text += f"  ... и ещё {len(items) - 3} резюме\n"
-            else:
-                text += "❌ Резюме не найдены\n"
-                text += "💡 Создайте резюме на hh.ru, чтобы использовать функции бота\n"
-        except Exception as e:
-            text += f"❌ Ошибка проверки резюме: {str(e)}\n"
 
         await message.answer(text)
     except Exception as e:
